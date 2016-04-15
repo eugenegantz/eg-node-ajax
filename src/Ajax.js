@@ -1,6 +1,10 @@
+/**
+ * @module eg-node-ajax
+ * */
 var Ajax = Object.create(null);
 
 /**
+ * Определить тип переменной
  * @param {*} value
  * @return {String}
  * */
@@ -97,9 +101,14 @@ Ajax._xFormParam = function(value, parent){
 
 /**
  * @callback AjaxReqCallback
- * @param {String, null} err
- * @param {Object} context
+ * @param {String | null} err - ошибка
+ * @param {Object} context - ответ запроса
+ * 	@param {Error} context.error - ошибка
+ * 	@param {Number} context.errno - номер ошибки
+ * 	@param {String} context.responseText - содержимое ответа
+ * 	@param {Number} context.status - код-статус ответа от сервера
  * */
+
 /**
  * @param {Object} arg
  * @param {String} arg.url,
