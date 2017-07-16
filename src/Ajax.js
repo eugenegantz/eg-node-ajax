@@ -1,112 +1,23 @@
 /**
  * @module eg-node-ajax
  * */
-var Ajax = Object.create(null);
-
-/**
- * Определить тип переменной
- * @param {*} value
- * @return {String}
- * */
-Ajax.getType = function(value){
-	if (  toString.call(value) == "[object Array]"  ){
-		return "array";
-
-	} else if (  toString.call(value) == "[object Object]"  )  {
-		return "object";
-
-	} else if (  value === null  ) {
-		return "null";
-
-	} else if (  toString.call(value) == "[object Date]"  ) {
-		return "date";
-
-	} else {
-		return typeof value;
-
-	}
-};
-
-
-/**
- * @ignore
- * */
-Ajax._xFormKeys = function(keys){
-
-	if (typeof keys == "string") return keys;
-	if (keys.length < 2) return keys[0];
-
-	var s = "", key;
-
-	for(var c=0; c<keys.length; c++){
-
-		key = keys[c];
-
-		if (key === null) key = "";
-
-		if (  !c  ){
-			s += key;
-			continue;
-		}
-
-		s += "[" + key + "]";
-
-	}
-
-	return s;
-
-};
-
-
-/**
- * @ignore
- * */
-Ajax._xFormParam = function(value, parent){
-
-	var
-		ret = [],
-		keys,
-		type = this.getType(value),
-		propType;
-
-	// Если тип не массив или обьект возвращать как есть, это глухая ветка дерева
-	// if (  ["object", "array"].indexOf(type) == -1  ) return value;
-
-	if (typeof parent != "object") parent = [];
-
-	for (var prop in value) {
-		if (value.hasOwnProperty) {
-			if (!value.hasOwnProperty(prop)) {
-				continue;
-			}
-		}
-
-		propType = this.getType(value[prop]);
-
-		keys = parent.concat(type == "array" ? null : prop);
-
-		if (  propType == "object" || propType == "array"  ){
-			ret = ret.concat(  this._xFormParam(value[prop], keys)  );
-
-		} else {
-			ret = ret.concat(  encodeURIComponent(this._xFormKeys(keys)) + "=" + encodeURIComponent(value[prop]) );
-
-		}
-
-	}
-
-	return ret.join("&");
-
-};
+const
+	voidFn          = () => {},
+	Ajax            = Object.create(null),
+	modIconvLite    = require('iconv-lite'),
+	modURL          = require('url'),
+	modHttp         = require('http'),
+	lodash          = require('lodash'),
+	jqParams        = require('eg-jquery-params');
 
 /**
  * @callback AjaxReqCallback
  * @param {String | null} err - ошибка
  * @param {Object} context - ответ запроса
- * 	@param {Error} context.error - ошибка
- * 	@param {Number} context.errno - номер ошибки
- * 	@param {String} context.responseText - содержимое ответа
- * 	@param {Number} context.status - код-статус ответа от сервера
+ * @param {Error} context.error - ошибка
+ * @param {Number} context.errno - номер ошибки
+ * @param {String} context.responseText - содержимое ответа
+ * @param {Number} context.status - код-статус ответа от сервера
  * */
 
 /**
@@ -117,75 +28,63 @@ Ajax._xFormParam = function(value, parent){
  * @param {Object} arg.vars
  * @param {String} arg.data
  * */
-Ajax.request = function(arg){
-	var modIconvLite		= require("iconv-lite");
-	var modURL			= require('url');
-	var modHttp			= require('http');
-	var lodash				= require('lodash');
+Ajax.request = function(arg = {}) {
+	var reqData,
+		URLParsed       = modURL.parse(arg.url),
+		method          = typeof arg.method !== 'string' ? 'GET' : arg.method.toUpperCase(),
+		callback        = typeof arg.callback !== 'function' ? voidFn : arg.callback,
+		decodeFrom      = typeof arg.decodeFrom !== 'string' ? null : arg.decodeFrom,
+		argVars         = !arg.vars ? {} : arg.vars,
+		argData         = !arg.data ? null : arg.data;
 
 	// ---------------------------------------------------------------
 	// Аргументы
 
-	if (
-		typeof arg.url != "string"
-		|| !arg.url
-	){
-		throw new Error("!arg.url");
-	}
+	if (typeof arg.url !== 'string' || !arg.url)
+		throw new Error('!arg.url');
 
-	var URLParsed			= modURL.parse(arg.url);
-	var method				= typeof arg.method != "string" ? "GET" : arg.method.toUpperCase();
-	var callback				= typeof arg.callback != "function" ? new Function() : arg.callback;
-	var decodeFrom		= typeof arg.decodeFrom != "string" ? null : arg.decodeFrom;
-	var argVars				= !arg.vars ? {} : arg.vars ;
-	var argData				= !arg.data ? null : arg.data;
-
-	var reqData;
-
-	if (  !argData  ){
-		reqData = typeof argVars == "object" ? this._xFormParam(argVars) : "";
+	if (!argData) {
+		reqData = typeof argVars === 'object' ? jqParams(argVars) : '';
 
 	} else {
-		reqData = typeof argData == "string" ? argData : "";
-
+		reqData = typeof argData === 'string' ? argData : '';
 	}
 
-	if (!URLParsed.port) URLParsed.port = 80;
+	if (!URLParsed.port)
+		URLParsed.port = 80;
 
 	// ---------------------------------------------------------------
 	// Параметры запроса
 
 	var httpReqOpt = {
-		"hostname": URLParsed.hostname,
-		"port": URLParsed.port,
-		"path": method == "GET"
-			? lodash.trim(URLParsed.path,"?") + "?" + reqData
+		hostname: URLParsed.hostname,
+		port: URLParsed.port,
+		path: method === 'GET'
+			? lodash.trim(URLParsed.path, '?') + '?' + reqData
 			: URLParsed.path,
-		"method": method,
-		"headers": {
-			"Content-length"		: reqData.length,
-			"Content-type"		: "application/x-www-form-urlencoded",
-			"Connection"			: "keep-alive",
-			"Accept-Encoding"	: "gzip, deflate",
-			"User-Agent"			: "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.89 Safari/537.36"
+		method: method,
+		headers: {
+			'Content-length': reqData.length,
+			'Content-type': 'application/x-www-form-urlencoded',
+			'Connection': 'keep-alive',
+			'Accept-Encoding': 'gzip, deflate',
+			'User-Agent': 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.89 Safari/537.36'
 		}
 	};
 
 	// ---------------------------------------------------------------
 
-	var req = modHttp.request(httpReqOpt, function(res){
+	var req = modHttp.request(httpReqOpt, function(res) {
 		var httpReqParts = [];
 
-		res.on('data', function (chunk) {
-			httpReqParts.push(chunk);
-		});
+		res.on('data', chunk => httpReqParts.push(chunk));
 
-		res.on('end', function () {
+		res.on('end', () => {
 			// httpReqParts.push(chunk);
 			callback(
 				null,
 				{
-					error : null,
+					error: null,
 					responseText: (
 						!decodeFrom
 							? httpReqParts.join('')
@@ -198,7 +97,7 @@ Ajax.request = function(arg){
 		});
 	});
 
-	req.on('error', function(e) {
+	req.on('error', e => {
 		console.log('problem with request: ' + e.message);
 		callback(
 			e.message,
