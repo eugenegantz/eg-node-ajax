@@ -7,6 +7,7 @@ const
 	modIconvLite    = require('iconv-lite'),
 	modURL          = require('url'),
 	modHttp         = require('http'),
+	modHttps        = require('https'),
 	lodash          = require('lodash'),
 	jqParams        = require('eg-jquery-params');
 
@@ -34,6 +35,7 @@ Ajax.request = function(arg = {}) {
 		method          = typeof arg.method !== 'string' ? 'GET' : arg.method.toUpperCase(),
 		callback        = typeof arg.callback !== 'function' ? voidFn : arg.callback,
 		decodeFrom      = typeof arg.decodeFrom !== 'string' ? null : arg.decodeFrom,
+		http            = /^https:/ig.test(arg.url) ? modHttps : modHttp,
 		argVars         = !arg.vars ? {} : arg.vars,
 		argData         = !arg.data ? null : arg.data;
 
@@ -74,7 +76,7 @@ Ajax.request = function(arg = {}) {
 
 	// ---------------------------------------------------------------
 
-	var req = modHttp.request(httpReqOpt, function(res) {
+	var req = http.request(httpReqOpt, function(res) {
 		var httpReqParts = [];
 
 		res.on('data', chunk => httpReqParts.push(chunk));
