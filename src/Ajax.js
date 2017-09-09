@@ -28,6 +28,7 @@ const
  * @param {String} arg.method
  * @param {Object} arg.vars
  * @param {String} arg.data
+ * @param {Object=} arg.headers
  * */
 Ajax.request = function(arg = {}) {
 	var reqData,
@@ -36,6 +37,7 @@ Ajax.request = function(arg = {}) {
 		callback        = typeof arg.callback !== 'function' ? voidFn : arg.callback,
 		decodeFrom      = typeof arg.decodeFrom !== 'string' ? null : arg.decodeFrom,
 		http            = /^https:/ig.test(arg.url) ? modHttps : modHttp,
+		headers         = arg.headers,
 		argVars         = !arg.vars ? {} : arg.vars,
 		argData         = !arg.data ? null : arg.data;
 
@@ -65,13 +67,13 @@ Ajax.request = function(arg = {}) {
 			? lodash.trim(URLParsed.path, '?') + '?' + reqData
 			: URLParsed.path,
 		method: method,
-		headers: {
-			'Content-length': reqData.length,
-			'Content-type': 'application/x-www-form-urlencoded',
+		headers: Object.assign({
+			'Content-Length': reqData.length,
+			'Content-Type': 'application/x-www-form-urlencoded',
 			'Connection': 'keep-alive',
-			'Accept-Encoding': 'gzip, deflate',
+			// 'Accept-Encoding': 'gzip, deflate', // отключено см. задачу
 			'User-Agent': 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.89 Safari/537.36'
-		}
+		}, headers)
 	};
 
 	// ---------------------------------------------------------------
