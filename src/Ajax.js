@@ -91,7 +91,7 @@ Ajax.request = function(arg = {}) {
 					error: null,
 					responseText: (
 						!decodeFrom
-							? httpReqParts.join('')
+							? Buffer.concat(httpReqParts).toString()
 							: modIconvLite.decode(Buffer.concat(httpReqParts), decodeFrom)
 					),
 					status: res.statusCode,
