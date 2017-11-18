@@ -7,5 +7,8 @@
 		"eg-jquery-params": "git+https://github.com/eugenegantz/eg-jquery-param.git",
 		"lodash": ">=1.0.0",
 		"iconv-lite": ">=0.4.0"
+	},
+	"devDependencies": {
+		"mocha": "^4.0.1"
 	}
 }
